@@ -1,0 +1,124 @@
+import { expect, test } from '@playwright/test'
+
+const apiBaseUrl = process.env.PLAYWRIGHT_API_URL ?? 'http://localhost:3000'
+
+async function loginAsUser(page) {
+  await page.goto('/')
+  await page.locator('input[autocomplete="email"]').nth(1).fill('sara.juric@example.com')
+  await page.locator('input[autocomplete="current-password"]').nth(1).fill('SaraLove44')
+  await page.getByTestId('user-login-button').click()
+  await expect(page).toHaveURL(/pocetna/)
+}
+
+async function loginAsAdmin(page) {
+  await page.goto('/')
+  await page.locator('input[autocomplete="email"]').first().fill('maja.peric@example.com')
+  await page.locator('input[autocomplete="current-password"]').first().fill('Maja*Secure5')
+  await page.getByTestId('admin-login-button').click()
+  await expect(page).toHaveURL(/pocetna/)
+}
+
+test('prijava korisnika radi preko forme za korisnika', async ({ page }) => {
+  await loginAsUser(page)
+  await expect(page.getByText('Biblioteka')).toBeVisible()
+})
+
+test('pretraga knjiga na pocetnoj stranici filtrira popis', async ({ page }) => {
+  await loginAsUser(page)
+
+  const searchInput = page.locator('input[placeholder*="Pretra"]').first()
+  await searchInput.fill('Tajna vrta')
+
+  await expect(page.getByText('Tajna vrta')).toBeVisible()
+  await expect(page.getByText('Ponoćni vlak')).not.toBeVisible()
+})
+
+test('otvaranje detalja knjige prikazuje detalje i recenzije', async ({ page }) => {
+  await loginAsUser(page)
+
+  await page.getByText('Tajna vrta').first().click()
+
+  await expect(page).toHaveURL(/knjige\/\d+/)
+  await expect(page.getByTestId('book-title')).toBeVisible()
+  await expect(page.getByText('Autor')).toBeVisible()
+  await expect(page.getByText('Recenzije')).toBeVisible()
+})
+
+test('admin moze urediti korisnika u admin dijelu', async ({ page }) => {
+  const uniqueSuffix = Date.now()
+
+  const createResponse = await page.request.post(`${apiBaseUrl}/korisnici`, {
+    data: {
+      ime: 'Playwright',
+      prezime: 'User',
+      email: `playwright.edit.${uniqueSuffix}@example.com`,
+      lozinka: 'test123',
+      tipKorisnika: 3,
+      statusRacuna: 1,
+    },
+  })
+  const createdUser = await createResponse.json()
+
+  await loginAsAdmin(page)
+  await page.goto('/#/admin/korisnici')
+
+  const row = page.locator('tbody tr').filter({
+    has: page.getByText(createdUser.email),
+  })
+
+  await row.locator('input[type="checkbox"]').check()
+  await page.getByRole('button', { name: 'Uredi' }).click()
+  await expect(page).toHaveURL(new RegExp(`/profil/${createdUser.korisnik_id}$`))
+
+  await page.locator('input[autocomplete="given-name"]').fill('Ažurirano')
+  await page.getByTestId('save-user-button').click()
+
+  await expect(page.getByText('Podaci o korisniku su spremljeni.')).toBeVisible()
+
+  await page.request.delete(`${apiBaseUrl}/korisnici/${createdUser.korisnik_id}`)
+})
+
+test('admin moze obrisati korisnika uz potvrdu dijaloga', async ({ page }) => {
+  const uniqueSuffix = Date.now()
+
+  const createResponse = await page.request.post(`${apiBaseUrl}/korisnici`, {
+    data: {
+      ime: 'Playwright',
+      prezime: 'Delete',
+      email: `playwright.delete.${uniqueSuffix}@example.com`,
+      lozinka: 'test123',
+      tipKorisnika: 3,
+      statusRacuna: 1,
+    },
+  })
+  const createdUser = await createResponse.json()
+
+  await loginAsAdmin(page)
+  await page.goto('/#/admin/korisnici')
+
+  const row = page.locator('tbody tr').filter({
+    has: page.getByText(createdUser.email),
+  })
+
+  await row.locator('input[type="checkbox"]').check()
+  await page.getByRole('button', { name: 'Izbriši' }).first().click()
+
+  const dialog = page.locator('.q-dialog')
+  await expect(dialog.getByText('Potvrda brisanja')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Izbriši' }).click()
+
+  await expect(page.getByText('Korisnik je obrisan.')).toBeVisible()
+})
+
+test('prikazuje gresku ako API ne vrati podatke', async ({ page }) => {
+  await page.route('**/knjige', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: 'Namjerna greška za test' }),
+    })
+  })
+
+  await loginAsUser(page)
+  await expect(page.getByText('Neuspjelo učitavanje knjiga.')).toBeVisible()
+})
