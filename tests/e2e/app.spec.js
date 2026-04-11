@@ -4,16 +4,16 @@ const apiBaseUrl = process.env.PLAYWRIGHT_API_URL ?? 'http://localhost:3000'
 
 async function loginAsUser(page) {
   await page.goto('/')
-  await page.locator('input[autocomplete="email"]').nth(1).fill('sara.juric@example.com')
-  await page.locator('input[autocomplete="current-password"]').nth(1).fill('SaraLove44')
+  await page.getByTestId('user-email-input').locator('input').fill('sara.juric@example.com')
+  await page.getByTestId('user-password-input').locator('input').fill('SaraLove44')
   await page.getByTestId('user-login-button').click()
   await expect(page).toHaveURL(/pocetna/)
 }
 
 async function loginAsAdmin(page) {
   await page.goto('/')
-  await page.locator('input[autocomplete="email"]').first().fill('maja.peric@example.com')
-  await page.locator('input[autocomplete="current-password"]').first().fill('Maja*Secure5')
+  await page.getByTestId('admin-email-input').locator('input').fill('maja.peric@example.com')
+  await page.getByTestId('admin-password-input').locator('input').fill('Maja*Secure5')
   await page.getByTestId('admin-login-button').click()
   await expect(page).toHaveURL(/pocetna/)
 }
@@ -29,8 +29,8 @@ test('pretraga knjiga na pocetnoj stranici filtrira popis', async ({ page }) => 
   const searchInput = page.locator('input[placeholder*="Pretra"]').first()
   await searchInput.fill('Tajna vrta')
 
-  await expect(page.getByText('Tajna vrta')).toBeVisible()
-  await expect(page.getByText('Ponoćni vlak')).not.toBeVisible()
+  await expect(page.getByText('Tajna vrta').first()).toBeVisible()
+  await expect(page.getByText('Ponoćni vlak')).toHaveCount(0)
 })
 
 test('otvaranje detalja knjige prikazuje detalje i recenzije', async ({ page }) => {
@@ -41,7 +41,7 @@ test('otvaranje detalja knjige prikazuje detalje i recenzije', async ({ page }) 
   await expect(page).toHaveURL(/knjige\/\d+/)
   await expect(page.getByTestId('book-title')).toBeVisible()
   await expect(page.getByText('Autor')).toBeVisible()
-  await expect(page.getByText('Recenzije')).toBeVisible()
+  await expect(page.getByText('Recenzije', { exact: true })).toBeVisible()
 })
 
 test('admin moze urediti korisnika u admin dijelu', async ({ page }) => {
@@ -66,7 +66,7 @@ test('admin moze urediti korisnika u admin dijelu', async ({ page }) => {
     has: page.getByText(createdUser.email),
   })
 
-  await row.locator('input[type="checkbox"]').check()
+  await row.locator('.q-checkbox').click()
   await page.getByRole('button', { name: 'Uredi' }).click()
   await expect(page).toHaveURL(new RegExp(`/profil/${createdUser.korisnik_id}$`))
 
@@ -100,7 +100,7 @@ test('admin moze obrisati korisnika uz potvrdu dijaloga', async ({ page }) => {
     has: page.getByText(createdUser.email),
   })
 
-  await row.locator('input[type="checkbox"]').check()
+  await row.locator('.q-checkbox').click()
   await page.getByRole('button', { name: 'Izbriši' }).first().click()
 
   const dialog = page.locator('.q-dialog')

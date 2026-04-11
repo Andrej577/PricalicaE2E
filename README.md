@@ -8,7 +8,7 @@ Playwright E2E testovi nalaze se u zasebnom projektu:
 
 - konfiguracija: [playwright.config.js](/c:/Users/Andrej/Desktop/Pricalica%202026/PricalicaE2E/playwright.config.js)
 - testovi: [app.spec.js](/c:/Users/Andrej/Desktop/Pricalica%202026/PricalicaE2E/tests/e2e/app.spec.js)
-- Docker setup: [docker-compose.e2e.yml](/c:/Users/Andrej/Desktop/Pricalica%202026/PricalicaE2E/docker-compose.e2e.yml)
+- Docker setup: [docker-compose.yml](/c:/Users/Andrej/Desktop/Pricalica%202026/PricalicaE2E/docker-compose.yml)
 
 ## Instalacija
 
@@ -44,13 +44,13 @@ npm run test:e2e:ui
 Iz mape `PricalicaE2E`:
 
 ```bash
-docker compose -f docker-compose.e2e.yml up --build --abort-on-container-exit playwright
+docker compose up --build --abort-on-container-exit playwright
 ```
 
 Gašenje:
 
 ```bash
-docker compose -f docker-compose.e2e.yml down -v
+docker compose down -v
 ```
 
 ## Što testovi pokrivaju
