@@ -1,20 +1,46 @@
 import { expect, test } from '@playwright/test'
 
 const apiBaseUrl = process.env.PLAYWRIGHT_API_URL ?? 'http://localhost:3000'
+const appBasePathPattern = /#\/?$/
+
+async function gotoLoginPage(page) {
+  let lastError
+
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      await page.goto('/', { waitUntil: 'domcontentloaded' })
+      await expect(page).toHaveURL(appBasePathPattern)
+      await expect(page.getByTestId('user-login-form')).toBeVisible()
+      return
+    } catch (error) {
+      lastError = error
+
+      if (!String(error).includes('ERR_EMPTY_RESPONSE') || attempt === 5) {
+        throw error
+      }
+
+      await page.waitForTimeout(1000)
+    }
+  }
+
+  throw lastError
+}
 
 async function loginAsUser(page) {
-  await page.goto('/')
-  await page.getByTestId('user-email-input').locator('input').fill('sara.juric@example.com')
-  await page.getByTestId('user-password-input').locator('input').fill('SaraLove44')
-  await page.getByTestId('user-login-button').click()
+  await gotoLoginPage(page)
+  const userForm = page.getByTestId('user-login-form')
+  await userForm.locator('input[autocomplete="email"]').fill('sara.juric@example.com')
+  await userForm.locator('input[autocomplete="current-password"]').fill('SaraLove44')
+  await userForm.getByTestId('user-login-button').click()
   await expect(page).toHaveURL(/pocetna/)
 }
 
 async function loginAsAdmin(page) {
-  await page.goto('/')
-  await page.getByTestId('admin-email-input').locator('input').fill('maja.peric@example.com')
-  await page.getByTestId('admin-password-input').locator('input').fill('Maja*Secure5')
-  await page.getByTestId('admin-login-button').click()
+  await gotoLoginPage(page)
+  const adminForm = page.getByTestId('admin-login-form')
+  await adminForm.locator('input[autocomplete="email"]').fill('maja.peric@example.com')
+  await adminForm.locator('input[autocomplete="current-password"]').fill('Maja*Secure5')
+  await adminForm.getByTestId('admin-login-button').click()
   await expect(page).toHaveURL(/pocetna/)
 }
 
