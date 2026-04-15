@@ -10,7 +10,7 @@ async function gotoLoginPage(page) {
     try {
       await page.goto('/', { waitUntil: 'domcontentloaded' })
       await expect(page).toHaveURL(appBasePathPattern)
-      await expect(page.getByTestId('user-login-form')).toBeVisible()
+      await expect(page.getByTestId('login-form')).toBeVisible()
       return
     } catch (error) {
       lastError = error
@@ -28,25 +28,34 @@ async function gotoLoginPage(page) {
 
 async function loginAsUser(page) {
   await gotoLoginPage(page)
-  const userForm = page.getByTestId('user-login-form')
-  await userForm.locator('input[autocomplete="email"]').fill('sara.juric@example.com')
-  await userForm.locator('input[autocomplete="current-password"]').fill('SaraLove44')
-  await userForm.getByTestId('user-login-button').click()
-  await expect(page).toHaveURL(/pocetna/)
+  const loginForm = page.getByTestId('login-form')
+  await loginForm.locator('input[autocomplete="email"]').fill('sara.juric@example.com')
+  await loginForm.locator('input[autocomplete="current-password"]').fill('SaraLove44')
+  await loginForm.getByTestId('login-button').click()
+  await expect(page).toHaveURL(/admin\/korisnici/)
 }
 
 async function loginAsAdmin(page) {
   await gotoLoginPage(page)
-  const adminForm = page.getByTestId('admin-login-form')
-  await adminForm.locator('input[autocomplete="email"]').fill('maja.peric@example.com')
-  await adminForm.locator('input[autocomplete="current-password"]').fill('Maja*Secure5')
-  await adminForm.getByTestId('admin-login-button').click()
-  await expect(page).toHaveURL(/pocetna/)
+  const loginForm = page.getByTestId('login-form')
+  await loginForm.locator('input[autocomplete="email"]').fill('maja.peric@example.com')
+  await loginForm.locator('input[autocomplete="current-password"]').fill('Maja*Secure5')
+  await loginForm.getByTestId('login-button').click()
+  await expect(page).toHaveURL(/admin\/korisnici/)
 }
 
-test('prijava korisnika radi preko forme za korisnika', async ({ page }) => {
+test('prijava korisnika radi preko jedinstvene forme', async ({ page }) => {
   await loginAsUser(page)
   await expect(page.getByText('Biblioteka')).toBeVisible()
+})
+
+test('odjava vraca korisnika na login ekran', async ({ page }) => {
+  await loginAsUser(page)
+
+  await page.getByTestId('logout-button').click()
+
+  await expect(page).toHaveURL(/#\/login$/)
+  await expect(page.getByTestId('login-form')).toBeVisible()
 })
 
 test('pretraga knjiga na pocetnoj stranici filtrira popis', async ({ page }) => {
