@@ -32,7 +32,7 @@ async function loginAsUser(page) {
   await loginForm.locator('input[autocomplete="email"]').fill('sara.juric@example.com')
   await loginForm.locator('input[autocomplete="current-password"]').fill('SaraLove44')
   await loginForm.getByTestId('login-button').click()
-  await expect(page).toHaveURL(/admin\/korisnici/)
+  await expect(page).toHaveURL(/pocetna/)
 }
 
 async function loginAsAdmin(page) {
